@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morse Code Learner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>Morse Master</h1>
+            <p>Type a letter to see its Morse code equivalent.</p>
+        </header>
+
+        <main class="glass-card">
+            <div class="input-group">
+                <label for="textInput">Enter Text</label>
+                <input type="text" id="textInput" placeholder="Type here..." maxlength="1" autocomplete="off">
+            </div>
+
+            <div class="output-group">
+                <div class="output-label">Morse Code</div>
+                <div id="morseOutput" class="morse-display">
+                    <span class="placeholder">... --- ...</span>
+                </div>
+            </div>
+        </main>
+        
+        <div class="reference-sheet glass-card">
+            <h3>Quick Reference</h3>
+            <div class="reference-grid">
+                <div class="ref-item"><span>A</span> <span>.-</span></div>
+                <div class="ref-item"><span>B</span> <span>-...</span></div>
+                <div class="ref-item"><span>C</span> <span>-.-.</span></div>
+                <div class="ref-item"><span>S</span> <span>...</span></div>
+                <div class="ref-item"><span>O</span> <span>---</span></div>
+                <div class="ref-item"><span>S</span> <span>...</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
