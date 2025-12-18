@@ -183,4 +183,61 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     observer.observe(morseOutput, { childList: true, characterData: true, subtree: true });
+
+    // Spacebar Keyer Logic
+    let keyerOsc = null;
+    let keyerGain = null;
+    let spaceKeyDownTime = 0;
+
+    practiceInput.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && !e.repeat) {
+            e.preventDefault();
+            startManualTone();
+            spaceKeyDownTime = Date.now();
+        }
+    });
+
+    practiceInput.addEventListener('keyup', (e) => {
+        if (e.code === 'Space') {
+            e.preventDefault();
+            stopManualTone();
+            const duration = Date.now() - spaceKeyDownTime;
+            const char = duration < 200 ? '.' : '-';
+            practiceInput.value += char;
+            practiceInput.dispatchEvent(new Event('input'));
+        }
+    });
+
+    function startManualTone() {
+        if (keyerOsc) return;
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const freq = 600;
+        keyerOsc = audioCtx.createOscillator();
+        keyerGain = audioCtx.createGain();
+
+        keyerOsc.type = 'sine';
+        keyerOsc.frequency.value = freq;
+        
+        keyerGain.gain.setValueAtTime(0, audioCtx.currentTime);
+        keyerGain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.01);
+
+        keyerOsc.connect(keyerGain);
+        keyerGain.connect(audioCtx.destination);
+        keyerOsc.start();
+    }
+
+    function stopManualTone() {
+        if (keyerOsc && keyerGain) {
+            const now = audioCtx.currentTime;
+            keyerGain.gain.cancelScheduledValues(now);
+            keyerGain.gain.setValueAtTime(keyerGain.gain.value, now);
+            keyerGain.gain.linearRampToValueAtTime(0, now + 0.01);
+            keyerOsc.stop(now + 0.01);
+            
+            keyerOsc = null;
+            keyerGain = null;
+        }
+    }
 });
