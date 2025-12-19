@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env
+env/
+venv/
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+server.log
+test_scripts/
+README.md
+task.md
+implementation_plan.md

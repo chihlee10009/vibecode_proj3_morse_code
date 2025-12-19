@@ -24,6 +24,7 @@ body {
     align-items: center;
     overflow-x: hidden;
     position: relative;
+    padding: 1rem;
 }
 
 /* Background Animations */
@@ -78,12 +79,16 @@ body {
 
 .container {
     width: 100%;
-    max-width: 500px;
-    padding: 2rem;
+    max-width: 600px;
+    padding: 1rem;
     display: flex;
     flex-direction: column;
     gap: 2rem;
     z-index: 1;
+}
+
+.hidden {
+    display: none !important;
 }
 
 header {
@@ -96,13 +101,40 @@ header h1 {
     background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
     letter-spacing: -1px;
 }
 
-header p {
+/* Mode Selector */
+.mode-selector {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.mode-btn {
+    background: transparent;
+    border: 1px solid var(--glass-border);
     color: #94a3b8;
-    font-size: 1.1rem;
+    padding: 0.8rem 1.5rem;
+    border-radius: 50px;
+    cursor: pointer;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.mode-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+.mode-btn.active {
+    background: var(--accent);
+    color: #0f172a;
+    border-color: var(--accent);
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
 }
 
 .glass-card {
@@ -113,6 +145,14 @@ header p {
     border-radius: 24px;
     padding: 2.5rem;
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    width: 100%;
+}
+
+.section-title {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #fff;
+    font-size: 1.5rem;
 }
 
 .input-group {
@@ -164,7 +204,7 @@ input[type="text"]:focus {
 
 .morse-display {
     font-family: 'Space Mono', monospace;
-    font-size: 3rem;
+    font-size: 2.5rem; /* Slightly smaller for mobile safety */
     font-weight: 700;
     min-height: 80px;
     display: flex;
@@ -172,41 +212,13 @@ input[type="text"]:focus {
     justify-content: center;
     color: var(--accent);
     text-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+    word-break: break-all;
+    padding: 0.5rem;
 }
 
 .morse-display .placeholder {
     opacity: 0.3;
     font-size: 1.5rem;
-}
-
-.reference-sheet {
-    padding: 1.5rem;
-    margin-top: 1rem;
-}
-
-.reference-sheet h3 {
-    text-align: center;
-    margin-bottom: 1rem;
-    font-size: 1rem;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.reference-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    text-align: center;
-    font-family: 'Space Mono', monospace;
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.ref-item span:first-child {
-    color: var(--accent);
-    font-weight: bold;
-    margin-right: 0.5rem;
 }
 
 .play-btn {
@@ -241,20 +253,6 @@ input[type="text"]:focus {
     filter: grayscale(1);
 }
 
-.play-btn:active:not(:disabled) {
-    transform: translateY(0);
-}
-
-@media (max-width: 600px) {
-    header h1 {
-        font-size: 2.5rem;
-    }
-    
-    .glass-card {
-        padding: 1.5rem;
-    }
-}
-
 .glass-card-inner {
     background: rgba(0, 0, 0, 0.2);
     border-radius: 16px;
@@ -273,16 +271,11 @@ input[type="text"]:focus {
     margin-bottom: 1rem;
 }
 
-#practiceInput {
+#practiceInput, #aiInput {
     font-size: 1.5rem;
     letter-spacing: 5px;
     width: 80%;
     margin-bottom: 1rem;
-}
-
-#practiceInput:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
 }
 
 .feedback-msg {
@@ -299,4 +292,107 @@ input[type="text"]:focus {
 .feedback-msg.incorrect {
     color: #f87171;
     text-shadow: 0 0 10px rgba(248, 113, 113, 0.4);
+}
+
+/* AI Mode Specifics */
+.controls-row {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+.glass-select {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-border);
+    color: #fff;
+    padding: 0.8rem 1.5rem;
+    border-radius: 12px;
+    font-family: 'Outfit', sans-serif;
+    outline: none;
+    cursor: pointer;
+}
+
+.action-btn {
+    background: var(--accent);
+    color: #0f172a;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(56, 189, 248, 0.4);
+}
+
+.challenge-box {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.challenge-label {
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+}
+
+.challenge-text {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.stats-panel {
+    text-align: center;
+}
+
+.stats-panel h3 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    color: var(--accent);
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--glass-border);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.9rem;
+}
+
+.reference-sheet {
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+.reference-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    text-align: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.ref-item span:first-child {
+    color: var(--accent);
+    font-weight: bold;
+    margin-right: 0.5rem;
+}
+
+@media (max-width: 600px) {
+    header h1 {
+        font-size: 2.5rem;
+    }
+    .controls-row {
+        flex-direction: column;
+    }
 }
