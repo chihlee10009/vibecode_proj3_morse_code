@@ -91,7 +91,7 @@ def get_models():
         "gemini-2.5-pro",
         "gemini-3.0-pro"
     ]
-    models = client.models.list()
+    # models = client.models.list() # Overwrite removed to use curated list
     return jsonify({'models': models})
 
 @app.route('/api/generate_challenge', methods=['POST'])

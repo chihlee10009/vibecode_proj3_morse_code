@@ -48,8 +48,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    modeBtns.classic.addEventListener('click', () => switchMode('classic'));
     modeBtns.ai.addEventListener('click', () => switchMode('ai'));
+
+    // Fetch Models on Load
+    fetch('/api/models')
+        .then(res => res.json())
+        .then(data => {
+            if (data.models && data.models.length > 0) {
+                modelSelect.innerHTML = data.models.map(m => 
+                    `<option value="${m}">${m.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>`
+                ).join('');
+            }
+        })
+        .catch(err => console.error('Failed to fetch models:', err));
 
     // --- Classic Mode Logic ---
     textInput.addEventListener('input', async (e) => {
