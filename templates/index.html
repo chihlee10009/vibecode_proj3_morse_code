@@ -19,10 +19,7 @@
     <div class="container container-wide">
         <header>
             <h1>Morse Master</h1>
-            <div class="mode-selector">
-                <button id="modeClassicBtn" class="mode-btn active">Classic</button>
-                <button id="modeAIBtn" class="mode-btn">AI Coach</button>
-            </div>
+            <!-- Mode buttons removed for Mastery Trainer focus -->
         </header>
 
         <main id="masteryView" class="glass-card">
@@ -37,9 +34,15 @@
                 <div id="targetChar" class="target-char">A</div>
             </div>
 
-            <div class="input-group">
-                <input type="text" id="masteryInput" placeholder="Tap Spacebar..." autocomplete="off">
+            <div class="input-container">
+                <div id="progressSlots" class="progress-slots">
+                    <!-- Slots injected by JS -->
+                </div>
+                <div class="input-group no-margin">
+                    <input type="text" id="masteryInput" placeholder="Tap..." autocomplete="off">
+                </div>
                 <div id="feedback" class="feedback-msg"></div>
+                <button id="giveUpBtn" class="give-up-btn">Next Character</button>
             </div>
             
             <div class="controls-row">

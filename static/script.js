@@ -5,12 +5,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const masteryInput = document.getElementById('masteryInput');
     const feedback = document.getElementById('feedback');
     const playTargetBtn = document.getElementById('playTargetBtn');
+    const progressSlots = document.getElementById('progressSlots');
+    const giveUpBtn = document.getElementById('giveUpBtn');
 
     // State
     const currentSet = ['A', 'B', 'C', 'D'];
     let targetChar = '';
+    let isProcessing = false; // block input during transitions
     
-    // Morse Dictionary (Client-side for Phase 1 speed)
+    // Morse Dictionary
     const MORSE_CODE_DICT = { 
         'A':'.-', 'B':'-...', 'C':'-.-.', 'D':'-..', 'E':'.',
         'F':'..-.', 'G':'--.', 'H':'....', 'I':'..', 'J':'.---', 
@@ -48,8 +51,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function pickNewTarget() {
-        // Randomly pick one from current set
-        // In later phases, this will be weighted by stats
+        isProcessing = false;
+        masteryInput.disabled = false;
+        
         const randomIndex = Math.floor(Math.random() * currentSet.length);
         targetChar = currentSet[randomIndex];
         updateUIForTarget();
@@ -63,37 +67,113 @@ document.addEventListener('DOMContentLoaded', () => {
         if (card) card.classList.add('active');
         
         masteryInput.value = '';
+        updateProgressSlots('');
         feedback.textContent = '';
         feedback.className = 'feedback-msg';
         masteryInput.style.borderColor = 'var(--glass-border)';
+        masteryInput.focus();
+    }
+
+    // --- Visual Progress Slots ---
+    function updateProgressSlots(currentInput) {
+        const targetMorse = MORSE_CODE_DICT[targetChar];
+        const maxLen = targetMorse.length;
+        
+        // Render slots if count changed (or first time)
+        if (progressSlots.childElementCount !== maxLen) {
+            progressSlots.innerHTML = Array(maxLen).fill('<div class="slot"></div>').join('');
+        }
+
+        // Fill slots based on input length
+        const slots = progressSlots.children;
+        for (let i = 0; i < maxLen; i++) {
+            if (i < currentInput.length) {
+                slots[i].classList.add('filled');
+            } else {
+                slots[i].classList.remove('filled');
+            }
+        }
     }
 
     // --- Input Logic ---
     masteryInput.addEventListener('input', (e) => {
+        if (isProcessing) {
+            e.target.value = e.target.value.slice(0, MORSE_CODE_DICT[targetChar].length); // ensure no extra
+            return;
+        }
+
         const input = e.target.value.trim();
         const targetMorse = MORSE_CODE_DICT[targetChar];
+        
+        updateProgressSlots(input);
 
-        if (input === targetMorse) {
-            handleSuccess();
-        } else if (targetMorse.startsWith(input)) {
-            // Typing correctly so far
-            masteryInput.style.borderColor = 'var(--glass-border)';
+        // Auto-validate logic
+        if (input.length >= targetMorse.length) {
+            // Check immediately
+            if (input === targetMorse) {
+                handleSuccess();
+            } else {
+                handleFailure(targetMorse);
+            }
         } else {
-            // Mistake
-            masteryInput.style.borderColor = '#f87171';
+            // Typing in progress...
+            // Optional: Check strictly if prefix matches to fail early?
+            // User requirement said "Prevent any further typing... once max length is hit".
+            // Since we check on >= length, we effectively stop there.
+            if (!targetMorse.startsWith(input)) {
+                masteryInput.style.borderColor = '#f87171';
+            } else {
+                masteryInput.style.borderColor = 'var(--glass-border)';
+            }
+        }
+    });
+
+    // Provide strict length constraint on input (keydown/keypress)
+    // to prevent typing more than needed visible characters
+    masteryInput.addEventListener('keydown', (e) => {
+        // Allow deletion
+        if (e.key === 'Backspace' || e.key === 'Delete') return;
+        
+        const targetMorse = MORSE_CODE_DICT[targetChar];
+        if (masteryInput.value.length >= targetMorse.length) {
+             // Block extra chars if not a control key
+             if (e.key.length === 1) e.preventDefault();
         }
     });
 
     function handleSuccess() {
+        isProcessing = true;
+        masteryInput.disabled = true;
         feedback.textContent = 'Correct!';
         feedback.className = 'feedback-msg correct';
         masteryInput.style.borderColor = '#4ade80';
         
-        // Play success sound? Or just wait
+        // Log success (Phase 2 placeholder)
+        
         setTimeout(() => {
             pickNewTarget();
-        }, 500); 
+        }, 800); 
     }
+
+    function handleFailure(correctAnswer) {
+        isProcessing = true;
+        masteryInput.disabled = true;
+        feedback.textContent = `Incorrect! It was ${correctAnswer}`;
+        feedback.className = 'feedback-msg incorrect';
+        masteryInput.style.borderColor = '#f87171';
+        
+        // Log failure (Phase 2 placeholder)
+
+        setTimeout(() => {
+            pickNewTarget();
+        }, 1500); 
+    }
+
+    // --- Give Up Logic ---
+    giveUpBtn.addEventListener('click', () => {
+        if (isProcessing) return;
+        handleFailure(MORSE_CODE_DICT[targetChar]); // Reuse failure logic
+    });
 
     // --- Audio Logic ---
     playTargetBtn.addEventListener('click', () => {
@@ -108,8 +188,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setupKeyer(input) {
         input.addEventListener('keydown', (e) => {
+            if (isProcessing) return; // ignore if processing result
+
             if (e.code === 'Space' && !e.repeat) {
                 e.preventDefault();
+                // Check if allowed to type more
+                if (input.value.length >= MORSE_CODE_DICT[targetChar].length) return;
+
                 startManualTone();
                 spaceKeyDownTime = Date.now();
             }
@@ -119,6 +204,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.code === 'Space') {
                 e.preventDefault();
                 stopManualTone();
+                
+                // If we were blocked from start, don't input
+                if (input.value.length >= MORSE_CODE_DICT[targetChar].length) return;
+
                 const duration = Date.now() - spaceKeyDownTime;
                 const char = duration < 200 ? '.' : '-';
                 input.value += char;

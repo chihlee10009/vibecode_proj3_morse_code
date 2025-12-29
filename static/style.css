@@ -409,6 +409,52 @@ input[type="text"]:focus {
     font-size: 0.9rem;
 }
 
+/* Progress Slots */
+.progress-slots {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    min-height: 20px;
+}
+
+.slot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.2s ease;
+}
+
+.slot.filled {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+}
+
+.input-group.no-margin {
+    margin-bottom: 0.5rem;
+}
+
+/* Give Up Button */
+.give-up-btn {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-family: 'Outfit', sans-serif;
+    margin-top: 1rem;
+    transition: color 0.3s;
+    text-decoration: underline;
+    text-decoration-color: rgba(100, 116, 139, 0.3);
+}
+
+.give-up-btn:hover {
+    color: #94a3b8;
+    text-decoration-color: #94a3b8;
+}
+
 .reference-sheet {
     padding: 1.5rem;
     margin-top: 1rem;
