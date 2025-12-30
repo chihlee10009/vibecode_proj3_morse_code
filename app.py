@@ -23,8 +23,11 @@ api_key = os.getenv("GEMINI_API_KEY")
 client = None
 if api_key:
     client = genai.Client(api_key=api_key)
+    print("Gemini Client initialized")
 else:
     print("Warning: GEMINI_API_KEY not found. AI features will be disabled.")
+
+from datetime import datetime
 
 # Database Models
 class UserProgress(db.Model):
@@ -40,6 +43,12 @@ class UserProgress(db.Model):
             'successes': self.successes,
             'accuracy': (self.successes / self.attempts * 100) if self.attempts > 0 else 0
         }
+
+class ProgressHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    character = db.Column(db.String(10), nullable=False)
+    is_success = db.Column(db.Boolean, default=False)
 
 # Initialize DB
 with app.app_context():
@@ -131,6 +140,7 @@ def report_result():
     # Simple tracking: track each letter in the text
     for char in text.upper():
         if char in MORSE_CODE_DICT:
+            # Aggregate Stats
             record = UserProgress.query.filter_by(character=char).first()
             if not record:
                 record = UserProgress(character=char)
@@ -139,6 +149,10 @@ def report_result():
             record.attempts += 1
             if success:
                 record.successes += 1
+            
+            # History Tracking
+            history = ProgressHistory(character=char, is_success=success)
+            db.session.add(history)
     
     db.session.commit()
     return jsonify({'status': 'recorded'})
@@ -147,6 +161,25 @@ def report_result():
 def get_stats():
     stats = UserProgress.query.order_by(UserProgress.attempts.desc()).all()
     return jsonify({'stats': [s.to_dict() for s in stats]})
+
+@app.route('/api/history', methods=['GET'])
+def get_history():
+    # Return last 50 attempts or grouped by date
+    # For now, let's just return a simple list of recent attempts for the chart
+    # Limit to last 100 for performance
+    history = ProgressHistory.query.order_by(ProgressHistory.timestamp.desc()).limit(100).all()
+    
+    # Format for chart: grouped by "Session" (just time sequence)
+    data = [{
+        'timestamp': h.timestamp.isoformat(),
+        'character': h.character,
+        'is_success': h.is_success
+    } for h in history]
+    
+    # Also simple accuracy over time: grouped by chunks? 
+    # Let's just return raw data and let frontend process or just return accumulated accuracy
+    
+    return jsonify({'history': data})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5003))
