@@ -216,6 +216,33 @@ input[type="text"]:focus {
     padding: 0.5rem;
 }
 
+.drill-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.big-char {
+    font-size: 8rem;
+    font-weight: 700;
+    line-height: 1;
+    background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 30px rgba(56, 189, 248, 0.3));
+}
+
+.morse-hint {
+    font-family: 'Space Mono', monospace;
+    font-size: 3rem;
+    color: var(--accent);
+    opacity: 0.8;
+    letter-spacing: 5px;
+    text-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
+}
+
 .morse-display .placeholder {
     opacity: 0.3;
     font-size: 1.5rem;
@@ -395,4 +422,41 @@ input[type="text"]:focus {
     .controls-row {
         flex-direction: column;
     }
+}
+
+/* Quiz Mode Styles */
+.hidden {
+    display: none !important;
+}
+
+.quiz-locked {
+    text-align: center;
+    padding: 3rem;
+    color: #94a3b8;
+}
+
+.lock-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.gold-text {
+    background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.3));
+}
+
+.quiz-hint-placeholder {
+    font-size: 1.5rem;
+    color: #52525b; /* Darker gray */
+    letter-spacing: 2px;
+    font-family: 'Space Mono', monospace;
+    margin-top: -0.5rem;
+}
+
+#quizInput:focus {
+    border-color: #fbbf24;
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
 }

@@ -21,34 +21,64 @@
         <header>
             <h1>Morse Master</h1>
             <div class="mode-selector">
-                <button id="modeClassicBtn" class="mode-btn active">Classic</button>
+                <button id="modeClassicBtn" class="mode-btn active">Trainer</button>
+                <button id="modeQuizBtn" class="mode-btn">Quiz</button>
                 <button id="modeAIBtn" class="mode-btn">AI Coach</button>
             </div>
         </header>
 
         <main id="classicView" class="glass-card">
-            <h2 class="section-title">Classic Translator</h2>
-            <div class="input-group">
-                <label for="textInput">Enter Text</label>
-                <input type="text" id="textInput" placeholder="Type here..." maxlength="50" autocomplete="off">
+            <h2 class="section-title">Mastery Trainer</h2>
+            
+            <div id="drillCard" class="drill-card">
+                <div id="targetChar" class="big-char">A</div>
+                <div id="morseHint" class="morse-hint">.-</div>
             </div>
 
-            <div class="output-group">
-                <div class="output-label">Morse Code</div>
-                <div id="morseOutput" class="morse-display">
-                    <span class="placeholder">... --- ...</span>
-                </div>
-                <button id="playBtn" class="play-btn" aria-label="Play Morse Code" disabled>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-                    Play Audio
-                </button>
+            <div class="input-group" style="text-align: center;">
+                <label for="drillInput">Type Morse Code</label>
+                <input type="text" id="drillInput" placeholder=".-" autocomplete="off" style="max-width: 300px; margin: 0 auto;">
+                <div id="drillFeedback" class="feedback-msg" style="margin-top: 1rem;"></div>
             </div>
 
             <div class="practice-group glass-card-inner">
-                <div class="output-label">Practice Zone</div>
-                <p class="practice-hint">Use Spacebar to Tap! (<200ms = Dot, >200ms = Dash)</p>
-                <input type="text" id="practiceInput" placeholder="Using Spacebar..." autocomplete="off" disabled>
-                <div id="feedback" class="feedback-msg"></div>
+                <div class="output-label">Instructions</div>
+                <p class="practice-hint">Type the dots and dashes for the letter above. <br>Use Spacebar to tap naturally!</p>
+            </div>
+
+            <div class="stats-panel glass-card-inner">
+                <h3>Your Stats</h3>
+                <div class="chart-container" style="position: relative; height:200px; width:100%; margin-bottom: 2rem;">
+                    <canvas id="trainerFluencyChart"></canvas>
+                </div>
+                <div id="trainerStatsContent">Loading stats...</div>
+            </div>
+        </main>
+
+        <main id="quizView" class="glass-card hidden">
+            <h2 class="section-title">Mastery Quiz</h2>
+            
+            <!-- Locked State -->
+            <div id="quizLocked" class="quiz-locked hidden">
+                <div class="lock-icon">🔒</div>
+                <h3>Quiz Locked</h3>
+                <p>Master at least 3 letters with >80% accuracy to unlock Quiz Mode.</p>
+                <button id="backToTrainerBtn" class="action-btn">Back to Trainer</button>
+            </div>
+
+            <!-- Active Quiz State -->
+            <div id="quizActive" class="hidden">
+                <div class="drill-card">
+                    <div id="quizTargetChar" class="big-char gold-text">?</div>
+                    <!-- NO HINT IN QUIZ MODE -->
+                    <div class="quiz-hint-placeholder">No Hints!</div>
+                </div>
+
+                <div class="input-group" style="text-align: center;">
+                    <label for="quizInput" class="gold-text">Prove Your Mastery</label>
+                    <input type="text" id="quizInput" placeholder="Type..." autocomplete="off" style="max-width: 300px; margin: 0 auto; border-color: var(--accent-gold);">
+                    <div id="quizFeedback" class="feedback-msg" style="margin-top: 1rem;"></div>
+                </div>
             </div>
         </main>
 
