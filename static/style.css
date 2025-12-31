@@ -100,6 +100,7 @@ header h1 {
     font-weight: 700;
     background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 1.5rem;
     letter-spacing: -1px;
@@ -230,6 +231,7 @@ input[type="text"]:focus {
     line-height: 1;
     background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     filter: drop-shadow(0 0 30px rgba(56, 189, 248, 0.3));
 }
@@ -444,6 +446,7 @@ input[type="text"]:focus {
 .gold-text {
     background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.3));
 }
@@ -459,4 +462,17 @@ input[type="text"]:focus {
 #quizInput:focus {
     border-color: #fbbf24;
     box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
+}
+
+/* Shake Animation */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.shake {
+    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    border-color: #f87171 !important;
+    box-shadow: 0 0 15px rgba(248, 113, 113, 0.5) !important;
 }

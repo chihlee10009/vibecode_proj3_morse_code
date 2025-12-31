@@ -146,6 +146,10 @@ def report_result():
                 record = UserProgress(character=char)
                 db.session.add(record)
             
+            # Fix: Ensure defaults are respected if DB returns None
+            if record.attempts is None: record.attempts = 0
+            if record.successes is None: record.successes = 0
+
             record.attempts += 1
             if success:
                 record.successes += 1

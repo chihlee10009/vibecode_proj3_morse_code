@@ -129,14 +129,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         currentTarget = nextChar;
+        const targetCode = morseMap[currentTarget]; // Get code here for length
         
         // Update UI
         targetCharElem.textContent = currentTarget;
-        morseHintElem.textContent = morseMap[currentTarget];
+        morseHintElem.textContent = targetCode;
         drillInput.value = '';
         drillFeedback.textContent = '';
         drillInput.style.borderColor = 'var(--glass-border)';
         
+        // Input Constraints
+        drillInput.maxLength = targetCode.length;
+        drillInput.setAttribute('maxlength', targetCode.length); // Explicit attribute
+
         isProcessing = false;
         drillInput.focus();
     }
@@ -144,71 +149,55 @@ document.addEventListener('DOMContentLoaded', () => {
     drillInput.addEventListener('input', (e) => {
         if (isProcessing) return;
         
-        const input = e.target.value.trim();
         const targetCode = morseMap[currentTarget];
-
+        let input = e.target.value.trim();
+        
+        // Strict Constraint: Truncate if exceeds length
+        if (input.length > targetCode.length) {
+            input = input.slice(0, targetCode.length);
+            e.target.value = input;
+        }
+        
+        // Visual Feedback (Immediate)
         if (input === targetCode) {
-            // Success!
-            isProcessing = true;
-            drillFeedback.textContent = 'Correct!';
-            drillFeedback.className = 'feedback-msg correct';
-            drillInput.style.borderColor = '#4ade80';
-            
-            // Record result (success)
-            reportResult(currentTarget, true);
-
-            // Auto advance
-            setTimeout(() => {
-                startDrill();
-            }, 500); 
+            // Perfect match (also implies max length reached)
+            handleDrillSuccess();
         } else if (targetCode.startsWith(input)) {
-            // Partial match - neutral
-            drillFeedback.textContent = '';
-            drillInput.style.borderColor = 'var(--glass-border)';
+             // Partial correct
+             drillFeedback.textContent = '';
+             drillInput.style.borderColor = 'var(--glass-border)';
         } else {
-            // Wrong
-            drillFeedback.textContent = 'Keep trying...';
-            drillFeedback.className = 'feedback-msg incorrect';
-            drillInput.style.borderColor = '#f87171';
-            
-            // Record result (failure) - Optional? Plan didn't specify strict tracking for Trainer drill failures
-            // But user asked for stats. If we track simple drill failures, accuracy might drop fast.
-            // Let's track it!
-             // optimization: debouce failure recording? 
-             // actually, for 'Trainer' mode, maybe we strictly record ONLY when they submit (e.g. timeout or mismatch)?
-             // The prompt "Show ... how many times they were successful vs unsuccessful".
-             // If I record every typo as a failure, it might be harsh. 
-             // Let's record 'failure' only if length exceeds or is definitely wrong and they pause?
-             // Or simpler: For Trainer Mode, we might NOT record failures instantly on every keystroke. 
-             // But existing AI mode recorded per character.
-             // Let's stick to recording on definitive success. For failure, maybe only on strict wrong?
-             // Actually, simplest is: Report Success. Report Failure only if they give up?
-             // Current AI mode records on "Correct" or "Incorrect" feedback?
-             // AI mode records `reportResult(challenge, true)` ONLY on success.
-             // It does NOT appear to record failures in the snippet I read.
-             // Wait, I see `reportResult` calls in AI mode? 
-             // Checking snippet... `reportResult` is called only in the `if (normalizedInput === normalizedTarget)` block.
-             // So currently we ONLY track successes? 
-             // That means `attempts` only increments on success? NO. 
-             // `report_result` API increments attempts every time it's called.
-             // So if I only call it on success, accuracy is always 100%?
-             // Logic in `report_result` (backend): 
-             // `record.attempts += 1`, `if success: record.successes += 1`
-             // So I MUST call reportResult(text, false) for failures.
-             // In AI mode, I don't see a call for failure. THAT IS A BUG in the existing AI mode logic!
-             // I should fix that or at least implement it correctly for Quiz/Trainer.
-             // For Trainer: if I type wrong, is it an attempt? 
-             // Let's say: "Attempt" = completed input. 
-             // Since Trainer allows backspace, maybe we don't count intermediate typos as failures.
-             // We can count a "Failure" if they take too long or request a hint?
-             // User Request: "Show ... how many times they were successful vs unsuccessful".
-             // I'll add a simple logic: If they get it wrong and clear/backspace, it's just practicing.
-             // But for Quiz, it should be strict.
-             // For Trainer, maybe we just track successes for now to avoid spamming DB with typos.
-             // OR, we can add a 'Skip' button to count as failure?
-             // Let's sticking to: Track Successes. We can tweak failure tracking later.
+             // Wrong char - Immediate Reset
+             isProcessing = true; // Lock input
+             
+             drillFeedback.textContent = 'Incorrect!';
+             drillFeedback.className = 'feedback-msg incorrect';
+             drillInput.classList.add('shake');
+             
+             // Reset after delay
+             setTimeout(() => {
+                 drillInput.value = '';
+                 drillInput.classList.remove('shake');
+                 drillFeedback.textContent = '';
+                 drillInput.style.borderColor = 'var(--glass-border)';
+                 isProcessing = false; // Unlock
+                 drillInput.focus();
+             }, 800);
         }
     });
+
+    function handleDrillSuccess() {
+        isProcessing = true;
+        drillFeedback.textContent = 'Correct!';
+        drillFeedback.className = 'feedback-msg correct';
+        drillInput.style.borderColor = '#4ade80';
+        
+        reportResult(currentTarget, true);
+
+        setTimeout(() => {
+            startDrill();
+        }, 500);
+    }
 
     // --- Quiz Logic ---
     async function initQuiz() {
@@ -226,7 +215,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (masteredChars.length < 3) {
                  quizLocked.classList.remove('hidden');
-                 // Update locked text with current progress?
                  quizLocked.querySelector('p').innerHTML = `
                     You have mastered ${masteredChars.length} / 3 required letters.<br>
                     Need >80% accuracy (min 5 attempts) to master a letter.
@@ -244,7 +232,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (masteredChars.length === 0) return;
         
         let nextChar = quizTarget;
-        // Smart random
         if (masteredChars.length > 1) {
             while (nextChar === quizTarget) {
                 nextChar = masteredChars[Math.floor(Math.random() * masteredChars.length)];
@@ -254,47 +241,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         quizTarget = nextChar;
+        const targetCode = getMorseCode(quizTarget);
+
         quizTargetChar.textContent = quizTarget;
         quizInput.value = '';
         quizFeedback.textContent = '';
         quizInput.style.backgroundColor = 'rgba(0,0,0,0.2)';
         quizInput.style.borderColor = 'var(--accent-gold)';
         
+        // Input Constraints
+        quizInput.maxLength = targetCode.length;
+        quizInput.setAttribute('maxlength', targetCode.length);
+
         quizInput.focus();
         isProcessing = false;
     }
 
-    quizInput.addEventListener('change', () => {
-         // Use 'change' or Enter key for Quiz to force distinct submission?
-         // Or just input like Drill? Input is smoother.
-         // Let's use input but maybe penalize wrongs?
-    });
+    // Removed 'change' listener, using 'input' for auto-submit
 
     quizInput.addEventListener('input', (e) => {
         if (isProcessing) return;
         
-        const input = e.target.value.trim();
-        // Since we don't have morseMap for ALL chars yet (A-D only in snippet?), 
-        // we might fail if Quiz selects 'E' from AI practice?
-        // Wait, `morseMap` only has A,B,C,D!
-        // `currentSet` is A-D.
-        // If I mastered 'E' in AI mode, `morseMap` won't have it!
-        // I need a FULL morse map. 
-        // I will rely on the backend or extend the map.
-        // IMPORTANT: I must extend `morseMap` to include at least common letters or fetch from backend?
-        // Backend has `MORSE_CODE_DICT`. I should fetch it or embed it.
-        // For now, I'll extend the local map with full alphabet to be safe.
-        // ... Extending Map in separate edit or here? 
-        // I'll extend it here, it's safer.
-        
-        // Let's assume I fix the map.
-        const targetCode = getMorseCode(quizTarget); // Helper
+        const targetCode = getMorseCode(quizTarget);
+        let input = e.target.value.trim();
+
+        // Strict Constraint: Truncate if exceeds length
+        if (input.length > targetCode.length) {
+            input = input.slice(0, targetCode.length);
+            e.target.value = input;
+        }
 
         if (input === targetCode) {
             isProcessing = true;
             quizFeedback.textContent = 'Excellent!';
             quizFeedback.className = 'feedback-msg correct';
-            quizInput.style.borderColor = '#4ade80'; // Green
+            quizInput.style.borderColor = '#4ade80'; 
 
             reportResult(quizTarget, true);
             setTimeout(() => {
@@ -303,25 +284,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (targetCode.startsWith(input)) {
              quizInput.style.borderColor = 'var(--accent-gold)';
         } else {
-             // Wrong! In Quiz Mode, this counts as a FAILURE immediately?
-             // Or at least show red.
              quizFeedback.textContent = 'Incorrect';
              quizFeedback.className = 'feedback-msg incorrect';
              quizInput.style.borderColor = '#f87171';
-             
-             // In Quiz, maybe we DO record failure? 
-             // Let's Report Failure on strict mismatch?
-             // If I report failure, it might demote them from Mastered list!
-             // That's cool logic. "Mastery is fluid".
-             // I'll record failure if they type a char that is NOT in the sequence.
-             // debounce failure?
-             if (!isProcessing) {
-                 // Prevent spamming failure on one typo
-                 isProcessing = true; // Temporary lock? No, that stops typing.
-                 // Just record it once per round?
-                 // Let's keep it simple: No auto-failure record for now to avoid frustration.
-             }
         }
+        
+        // Auto-validate failure at max length could go here
     });
 
     // START OF DOMCONTENTLOADED

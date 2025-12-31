@@ -1,4 +1,13 @@
-# Phase 1: The Foundation (Layout & Input)
-Let's rebuild the classic mode of the Morse app to be a mastery-based trainer. Start by creating a clean, minimalist UI that displays a 'Current Set' of 1 letter out of a set of 4 letters (e.g., A, B, C, D). Show only  one letter at a time, show the character and its Morse code equivalent (dots and dashes). Below that, provide an input field where I can type the Morse code (using '.' and '-'). Add a listener so that when I finish typing a sequence, it will check if it matches the current letter I'm being quizzed on. No scoring yet—just get the display and the input matching logic working. 
+# **Prompt 1: Input Constraint Logic**
+
+**Goal:** Prevent the user from typing more dots/dashes than the current letter actually requires.
+
+**Prompt:** "Let's add a strict input constraint. For the current letter being quizzed, the app should know exactly how many Morse characters (dots and dashes) make up its code.
+
+1. Set a 'max length' for the input field equal to the length of the current letter's Morse code.  
+2. Once that length is reached, the app should immediately validate the answer (don't wait for me to press Enter).  
+3. Prevent any further typing or characters from being entered once the max length is hit."
+
+
 
 
