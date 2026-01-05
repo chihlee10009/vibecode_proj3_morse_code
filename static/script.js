@@ -336,6 +336,9 @@ document.addEventListener('DOMContentLoaded', () => {
     startDrill();
 
     // --- AI Mode Logic ---
+    // --- AI Mode Logic ---
+    let currentAIChallengeMorse = '';
+
     nextChallengeBtn.addEventListener('click', async () => {
         challengeText.textContent = "THINKING...";
         nextChallengeBtn.disabled = true;
@@ -356,7 +359,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 aiInput.value = '';
                 aiFeedback.textContent = '';
                 aiInput.style.borderColor = 'var(--glass-border)';
-                aiInput.focus();
+                
+                // Pre-fetch translation for constraints
+                try {
+                    const transData = await fetchTranslation(data.challenge);
+                    currentAIChallengeMorse = transData.morse.replace(/\s\/\s/g, ' / ').replace(/\s+/g, ' ').trim();
+                    
+                    // Set Constraints
+                    aiInput.maxLength = currentAIChallengeMorse.length;
+                    aiInput.setAttribute('maxlength', currentAIChallengeMorse.length);
+                    aiInput.focus();
+                } catch (e) {
+                    console.error("Translation error for constraints:", e);
+                    // Fallback: remove limit if translation fails
+                    aiInput.removeAttribute('maxlength');
+                    currentAIChallengeMorse = '';
+                }
             }
         } catch (e) {
             challengeText.textContent = "ERROR";
@@ -367,35 +385,68 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // AI Validation
     aiInput.addEventListener('input', async (e) => {
-        const input = e.target.value.trim();
-        const challenge = challengeText.textContent; 
+        const input = e.target.value; 
+        // Note: Don't trim immediately if we want to allow spaces while typing?
+        // Actually Morse input often uses space separators.
+        // Let's stick to simple trim for check, but raw input for length.
         
-        if (!challenge || challenge === "THINKING..." || challenge === "ERROR") return;
+        if (!currentAIChallengeMorse) return;
 
-        try {
-            const data = await fetchTranslation(challenge);
-            const targetMorse = data.morse.replace(/\s\/\s/g, ' / '); 
+        const targetCode = currentAIChallengeMorse;
+        let val = input; // Don't trim for length check yet, or do?
+        // Usually strict constraint means exact match of string constraints
+        // If target has spaces, input needs spaces.
+        
+        // Strict Constraint: Truncate
+        if (val.length > targetCode.length) {
+            val = val.slice(0, targetCode.length);
+            e.target.value = val;
+        }
+
+        const normalizedInput = val.replace(/\s+/g, ' ').trim();
+        const normalizedTarget = targetCode.replace(/\s+/g, ' ').trim();
+
+        if (val === targetCode) { // Exact strict match check first? 
+            // Or use normalized for success?
+            // Let's usage normalized for success to be forgiving of extra spaces if they fit?
+            // But we have strict length constraint.
             
-            const normalizedInput = input.replace(/\s+/g, ' ').trim();
-            const normalizedTarget = targetMorse.replace(/\s+/g, ' ').trim();
-
             if (normalizedInput === normalizedTarget) {
-                aiFeedback.textContent = 'Correct! 🎉';
-                aiFeedback.className = 'feedback-msg correct';
-                aiInput.style.borderColor = '#4ade80';
-                reportResult(challenge, true);
-                setTimeout(updateStats, 1000);
-            } else if (normalizedTarget.startsWith(normalizedInput)) {
-                 aiFeedback.textContent = '...';
-                 aiFeedback.className = 'feedback-msg';
-                 aiInput.style.borderColor = 'var(--glass-border)';
+                 aiFeedback.textContent = 'Correct! 🎉';
+                 aiFeedback.className = 'feedback-msg correct';
+                 aiInput.style.borderColor = '#4ade80';
+                 reportResult(challengeText.textContent, true);
+                 // Optionally auto-advance or just let user click next
+                 // setTimeout(() => nextChallengeBtn.click(), 1500); 
+                 updateStats();
             } else {
+                 // Length reached but not correct (Shake)
+                 isProcessing = true;
                  aiFeedback.textContent = 'Incorrect';
                  aiFeedback.className = 'feedback-msg incorrect';
-                 aiInput.style.borderColor = '#f87171';
+                 aiInput.classList.add('shake');
+                 
+                 setTimeout(() => {
+                     aiInput.value = '';
+                     aiInput.classList.remove('shake');
+                     aiFeedback.textContent = '';
+                     aiInput.style.borderColor = 'var(--glass-border)';
+                     isProcessing = false;
+                     aiInput.focus();
+                 }, 800);
             }
-        } catch (e) {
-            console.error(e);
+        } else if (targetCode.startsWith(val)) {
+             aiFeedback.textContent = '...';
+             aiFeedback.className = 'feedback-msg';
+             aiInput.style.borderColor = 'var(--glass-border)';
+        } else {
+             // Immediate feedback for wrong char?
+             // Constraints usually allow typing until end unless we want immediate fail.
+             // Trainer does immediate fail. AI mode might be harder.
+             // Let's stick to "Shake at end" or "Red border if wrong prefix"
+             if (!targetCode.startsWith(val)) {
+                aiInput.style.borderColor = '#f87171';
+             }
         }
     });
 

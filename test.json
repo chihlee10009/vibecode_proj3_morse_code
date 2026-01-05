@@ -1,0 +1,16 @@
+{
+  "instances": [
+    {
+      "text": "<|im_start|>user What is the capital of Kansas?<|im_end|><|im_start|>assistant"
+    }
+  ],
+  "parameters": {
+    "sampling_params": {
+      "max_new_tokens": 1028,
+      "temperature": 0.6,
+      "top_p": 0.95,
+      "top_k": 20,
+      "min_p": 0
+    }
+  }
+}

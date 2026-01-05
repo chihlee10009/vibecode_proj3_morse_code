@@ -5,3 +5,6 @@ google-genai
 sqlalchemy
 gunicorn
 flask-sqlalchemy
+google-cloud-secret-manager
+requests
+google-auth

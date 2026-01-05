@@ -65,3 +65,5 @@ For AI mode, Gemini will choose a letter, or a word, or sentence, based on past 
 # Task 4
 Utilize a database to keep track of the users fluency on each morse code letter, word, and sentence, make sure to do this in both AI and Classic mode. Show the user how many times they were succesful vs unsuccessful over time.  
 
+# Features
+don't show whether the morse is correct or not until after the user reaches the end of the morse code sequence. 

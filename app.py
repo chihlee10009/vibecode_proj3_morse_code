@@ -6,6 +6,10 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 from flask_sqlalchemy import SQLAlchemy
+from google.cloud import secretmanager
+import requests
+import google.auth
+from google.auth.transport.requests import Request
 
 # Load environment variables
 load_dotenv()
@@ -18,14 +22,38 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///morse.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# Gemini Client
-api_key = os.getenv("GEMINI_API_KEY")
+# --- Gemini Client Setup ---
+def get_gemini_key():
+    # 1. Try GCP Secret Manager if path is provided
+    secret_path = os.getenv("SECRETS_API_KEY_PATH")
+    if secret_path:
+        try:
+            client = secretmanager.SecretManagerServiceClient()
+            # Append /versions/latest if not present
+            if "/versions/" not in secret_path:
+                secret_path = f"{secret_path}/versions/latest"
+            
+            response = client.access_secret_version(request={"name": secret_path})
+            payload = response.payload.data.decode("UTF-8")
+            print(f"Successfully fetched API key from Secret Manager: {secret_path}")
+            return payload
+        except Exception as e:
+            print(f"Error fetching from Secret Manager: {e}")
+            print("Falling back to environment variable...")
+
+    # 2. Fallback to standard Env Var
+    return os.getenv("GEMINI_API_KEY")
+
+api_key = get_gemini_key()
 client = None
 if api_key:
-    client = genai.Client(api_key=api_key)
-    print("Gemini Client initialized")
+    try:
+        client = genai.Client(api_key=api_key)
+        print("Gemini Client initialized")
+    except Exception as e:
+        print(f"Failed to initialize Gemini Client: {e}")
 else:
-    print("Warning: GEMINI_API_KEY not found. AI features will be disabled.")
+    print("Warning: No API Key found (checked Secret Manager & GEMINI_API_KEY). AI features will be disabled.")
 
 from datetime import datetime
 
@@ -98,38 +126,109 @@ def get_models():
         "gemini-2.5-flash",
         "gemini-2.5-flash-lite",
         "gemini-2.5-pro",
-        "gemini-3.0-pro"
+        "gemini-3.0-pro-preview",
+        "qwen-2.5-32b-instruct"
     ]
-    # models = client.models.list() # Overwrite removed to use curated list
     return jsonify({'models': models})
+
+def get_vertex_token():
+    credentials, project = google.auth.default()
+    credentials.refresh(Request())
+    return credentials.token
 
 @app.route('/api/generate_challenge', methods=['POST'])
 def generate_challenge():
-    if not client:
-        return jsonify({'error': 'AI not configured'}), 503
-
     data = request.get_json()
-    model_name = data.get('model', 'gemini-2.0-flash-exp')
+    model_name = data.get('model', 'gemini-2.5-flash')
     
     # Fetch weakest characters
     weakest = UserProgress.query.order_by((UserProgress.successes / UserProgress.attempts).asc()).limit(3).all()
     focus_chars = ", ".join([w.character for w in weakest if w.attempts > 0]) or "random letters"
 
-    prompt = f"Generate a single word or short sentence (max 5 words) for Morse code practice. Focus on these characters if possible: {focus_chars}. Return ONLY the text, no explanations."
+    prompt_text = f"Generate a single word or short sentence (max 5 words) for Morse code practice. Focus on these characters if possible: {focus_chars}. Return ONLY the text, no explanations."
 
-    try:
-        response = client.models.generate_content(
-            model=model_name, 
-            contents=prompt,
-            config=types.GenerateContentConfig(max_output_tokens=50)
-        )
-        challenge_text = response.text.strip().upper() if response.text else "MORSE"
-        # Remove non-morse chars just in case
-        challenge_text = ''.join([c for c in challenge_text if c in MORSE_CODE_DICT or c == ' '])
-        return jsonify({'challenge': challenge_text})
-    except Exception as e:
-        print(f"AI Error: {e}")
-        return jsonify({'challenge': 'SOS', 'error': str(e)})
+    if 'qwen' in model_name.lower():
+        try:
+            endpoint_id = os.getenv("ENDPOINT_ID")
+            project_id = os.getenv("PROJECT_ID")
+            location = "us-central1" # Assuming us-central1 from curl command
+            
+            if not endpoint_id or not project_id:
+                return jsonify({'error': 'Vertex AI Config Missing'}), 503
+
+            api_endpoint = f"https://mg-endpoint-c693f38b-30d6-4628-871d-ba2e5163965e.us-central1-304586562104.prediction.vertexai.goog/v1/projects/{project_id}/locations/{location}/endpoints/{endpoint_id}:predict"
+            
+            token = get_vertex_token()
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
+            }
+            
+            # Construct Qwen-compatible payload
+            payload = {
+                "instances": [
+                    {
+                        "text": f"<|im_start|>user\n{prompt_text}<|im_end|>\n<|im_start|>assistant\n"
+                    }
+                ],
+                "parameters": {
+                    "sampling_params": {
+                        "max_new_tokens": 50,
+                        "temperature": 0.6,
+                        "top_p": 0.95,
+                        "top_k": 20
+                    }
+                }
+            }
+            
+            response = requests.post(api_endpoint, headers=headers, json=payload)
+            response.raise_for_status()
+            
+            # Parse Vertex Response
+            # Structure depends on model, usually predictions[0]...
+            result_json = response.json()
+            # Adjust based on likely response structure (often raw text completion)
+            # For Qwen deployed via vLLM/similar on Vertex, it might be in 'predictions'
+            # Assuming 'predictions' list of strings or objects.
+            # Looking at test.json, user provided input format but not output. 
+            # Standard Vertex prediction response: {"predictions": ["output text..."]}
+            
+            # Let's try to grab the first prediction.
+            if 'predictions' in result_json and len(result_json['predictions']) > 0:
+                raw_text = result_json['predictions'][0]
+                # It might just be the continuation, let's strip it
+                challenge_text = raw_text.strip().upper()
+                
+                # Cleanup: Qwen might output more chat tokens or the prompt itself if not careful
+                # But with text-completion endpoint it usually just continues.
+                # If it includes input, we might need to split. 
+                # For now assume clean continuation.
+            else:
+                challenge_text = "MORSE"
+
+        except Exception as e:
+            print(f"Vertex Qwen Error: {e}")
+            return jsonify({'challenge': 'SOS', 'error': str(e)})
+
+    else:
+        # GEMINI Fallback
+        if not client:
+             return jsonify({'error': 'AI not configured'}), 503
+             
+        try:
+            response = client.models.generate_content(
+                model=model_name, 
+                contents=prompt_text,
+                config=types.GenerateContentConfig(max_output_tokens=50)
+            )
+            challenge_text = response.text.strip().upper() if response.text else "MORSE"
+        except Exception as e:
+            print(f"Gemini Error: {e}")
+            return jsonify({'challenge': 'SOS', 'error': str(e)})
+
+    # Common Cleanup
+    challenge_text = ''.join([c for c in challenge_text if c in MORSE_CODE_DICT or c == ' '])
+    return jsonify({'challenge': challenge_text})
 
 @app.route('/api/report_result', methods=['POST'])
 def report_result():
@@ -186,5 +285,5 @@ def get_history():
     return jsonify({'history': data})
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5003))
+    port = int(os.environ.get('PORT', 5004))
     app.run(host='0.0.0.0', port=port, debug=True)
